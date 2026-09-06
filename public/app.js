@@ -317,6 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 async function initApp() {
   setupEventListeners();
+  setupFullscreenOrientationLock();
   renderSearchHistory();
 
   await loadHomePageData();
@@ -870,6 +871,33 @@ function startInlinePlayer() {
   el.btnDetailPlayCover.classList.add("hidden");
   saveActivePlayerSession();
   showToast(`Memutar: ${title} (${serverInfo.name})`);
+}
+
+/**
+ * Player streaming (iframe server pihak ketiga) punya tombol fullscreen
+ * bawaannya sendiri. Kita nggak bisa nyuntik JS ke dalam iframe-nya (beda
+ * origin), tapi event fullscreenchange di document tetap kebaca sama parent
+ * page walau elemen yang full-screen-nya cross-origin. Jadi begitu user
+ * pencet tombol fullscreen di dalam player, kita deteksi lewat event itu
+ * lalu paksa rotasi ke landscape otomatis biar enak nontonnya. Waktu keluar
+ * dari fullscreen, orientasi dibalikin bebas (unlock) lagi.
+ */
+function setupFullscreenOrientationLock() {
+  const handleFullscreenChange = () => {
+    const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    const isPlayerFullscreen = fsEl && (fsEl === el.detailInlinePlayer || fsEl.contains?.(el.detailInlinePlayer));
+
+    if (isPlayerFullscreen && screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock("landscape").catch(() => {
+        /* sebagian browser/WebView nolak lock kalau bukan trusted user gesture; aman diabaikan */
+      });
+    } else if (!fsEl && screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
+    }
+  };
+
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
+  document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
 }
 
 async function setupTvEpisodeControls(detail) {
