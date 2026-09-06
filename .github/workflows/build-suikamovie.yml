@@ -1,0 +1,225 @@
+name: SUIKAMOVIE Multi-Platform Build Pipeline
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # ==========================================
+  # 1. BUILD ANDROID RELEASE & DEBUG APK
+  # ==========================================
+  build-android:
+    name: 📱 Build Android APK (SUIKAMOVIE)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install NPM Dependencies
+        run: npm ci || npm install
+
+      - name: ⚡ Sync Capacitor Android
+        run: npm run cap:sync
+
+      - name: 🔑 Generate Keystore if missing
+        run: |
+          if [ ! -f android/app/release.keystore ]; then
+            keytool -genkey -v -keystore android/app/release.keystore -alias suikamovie -keyalg RSA -keysize 2048 -validity 10000 -storepass suikamovie123 -keypass suikamovie123 -dname "CN=SUIKAMOVIE, OU=Streaming, O=SUIKAMOVIE Inc, L=Jakarta, S=ID, C=ID"
+          fi
+
+      - name: 🛠️ Build Android Signed Release APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: 📤 Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SUIKAMOVIE-Android-APK
+          path: android/app/build/outputs/apk/release/*.apk
+
+  # ==========================================
+  # 2. BUILD IOS IPA PACKAGE
+  # ==========================================
+  build-ios:
+    name: 🍎 Build iOS IPA Package (SUIKAMOVIE)
+    runs-on: macos-latest
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install NPM Dependencies
+        run: npm ci || npm install
+
+      - name: ⚡ Sync Capacitor iOS
+        run: npm run cap:sync
+
+      - name: 🍏 Build iOS App via Xcode
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release -sdk iphoneos -derivedDataPath ios/build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+
+      - name: 📦 Package App into .IPA File
+        run: |
+          mkdir -p ios/Payload
+          cp -r ios/build/Build/Products/Release-iphoneos/App.app ios/Payload/
+          cd ios
+          zip -r SUIKAMOVIE.ipa Payload
+          cd ..
+
+      - name: 📤 Upload iOS IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SUIKAMOVIE-iOS-IPA
+          path: ios/SUIKAMOVIE.ipa
+
+  # ==========================================
+  # 3. BUILD WEB PRODUCTION BUNDLE
+  # ==========================================
+  build-web:
+    name: 🌐 Build Web Bundle (SUIKAMOVIE)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install Dependencies & Verify Web Assets
+        run: |
+          npm ci || npm install
+          test -f public/index.html && test -f public/app.js && test -f public/style.css
+          echo "Web bundle verified successfully."
+
+      - name: 📤 Upload Web Bundle Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SUIKAMOVIE-Web-Bundle
+          path: public/
+
+  # ==========================================
+  # 4. PUBLISH GITHUB RELEASE
+  # ==========================================
+  publish-release:
+    name: 🚀 Create / Update GitHub Release
+    needs: [build-android, build-ios, build-web]
+    if: always() && !cancelled() && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 📥 Download Android APK Artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: SUIKAMOVIE-Android-APK
+          path: release-assets/android
+
+      - name: 📥 Download iOS IPA Artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: SUIKAMOVIE-iOS-IPA
+          path: release-assets/ios
+
+      - name: 📥 Download Web Bundle Artifact
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: SUIKAMOVIE-Web-Bundle
+          path: release-assets/web
+
+      - name: 📦 Package Assets for Release
+        run: |
+          mkdir -p assets_to_upload
+
+          # Copy Android APK if present
+          if [ -d "release-assets/android" ]; then
+            find release-assets/android -name "*.apk" -exec cp {} assets_to_upload/SUIKAMOVIE-Android.apk \;
+          fi
+
+          # Copy iOS IPA if present
+          if [ -d "release-assets/ios" ]; then
+            find release-assets/ios -name "*.ipa" -exec cp {} assets_to_upload/SUIKAMOVIE-iOS.ipa \;
+          fi
+
+          # Zip Web bundle if present
+          if [ -d "release-assets/web" ]; then
+            cd release-assets/web
+            zip -r ../../assets_to_upload/SUIKAMOVIE-Web-Bundle.zip .
+            cd ../..
+          fi
+
+          echo "Prepared assets for GitHub Release:"
+          ls -la assets_to_upload/
+
+          if [ -z "$(ls -A assets_to_upload/ 2>/dev/null)" ]; then
+            echo "Error: No release assets were found to publish!"
+            exit 1
+          fi
+
+      - name: 🏷️ Determine Release Tag
+        id: tag
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            echo "TAG_NAME=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG_NAME=v1.0.${{ github.run_number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🚀 Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.TAG_NAME }}
+          name: "SUIKAMOVIE Release ${{ steps.tag.outputs.TAG_NAME }}"
+          body: |
+            ## 🎬 SUIKAMOVIE Latest Release (${{ steps.tag.outputs.TAG_NAME }})
+
+            Berikut adalah hasil build otomatis terbaru untuk aplikasi **SUIKAMOVIE** (lk21-stream-premium).
+
+            ### 📦 Download Assets
+            - 📱 **Android APK**: `SUIKAMOVIE-Android.apk`
+            - 🍎 **iOS IPA**: `SUIKAMOVIE-iOS.ipa`
+            - 🌐 **Web Bundle**: `SUIKAMOVIE-Web-Bundle.zip`
+
+            ---
+            *Dipublikasikan secara otomatis melalui GitHub Actions Workflow (Run #${{ github.run_number }}) dari commit `${{ github.sha }}`.*
+          files: assets_to_upload/*
+          draft: false
+          prerelease: false
+          make_latest: "true"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
