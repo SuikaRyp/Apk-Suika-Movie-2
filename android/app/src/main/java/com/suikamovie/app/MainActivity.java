@@ -24,20 +24,20 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Sembunyikan navigation bar begitu app dibuka (immersive sticky).
-     * Nav bar cuma nongol sebentar kalau user swipe dari tepi layar
-     * (atas ke bawah / bawah ke atas), lalu otomatis ilang lagi lewat
-     * animasi swipe-nya sendiri — ini perilaku bawaan Android
-     * BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE. Status bar tetap tampil
-     * seperti biasa, cuma ikon/teksnya dipaksa putih (light content)
-     * biar kebaca jelas di atas header gelap aplikasi.
+     * Sembunyikan status bar & navigation bar begitu app dibuka
+     * (immersive sticky, full screen). Kedua bar cuma nongol sebentar
+     * kalau user swipe dari tepi layar (atas ke bawah / bawah ke atas),
+     * lalu otomatis ilang lagi lewat animasi swipe-nya sendiri — ini
+     * perilaku bawaan Android BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE.
+     * Ikon/teks status bar dipaksa putih (light content) buat jaga-jaga
+     * pas lagi kebuka sementara karena di-swipe.
      */
     private void setupImmersiveNavBar() {
         WindowInsetsControllerCompat controller =
                 WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
 
         if (controller != null) {
-            controller.hide(WindowInsetsCompat.Type.navigationBars());
+            controller.hide(WindowInsetsCompat.Type.systemBars());
             controller.setSystemBarsBehavior(
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
 
