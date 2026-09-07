@@ -294,17 +294,16 @@ const el = {
   commentInput: document.getElementById("commentInput"),
   commentsList: document.getElementById("commentsList"),
 
-  // Specs Elements
-  specIpAddress: document.getElementById("specIpAddress"),
-  specDeviceBrand: document.getElementById("specDeviceBrand"),
-  specOsVersion: document.getElementById("specOsVersion"),
-  specScreenRes: document.getElementById("specScreenRes"),
-  specConnectionType: document.getElementById("specConnectionType"),
-  specRam: document.getElementById("specRam"),
-  specCpuCores: document.getElementById("specCpuCores"),
-  specBattery: document.getElementById("specBattery"),
-  specTimezone: document.getElementById("specTimezone"),
-  specUserAgent: document.getElementById("specUserAgent"),
+  // Account page elements
+  accountAvatar: document.getElementById("accountAvatar"),
+  accountName: document.getElementById("accountName"),
+  accountEmail: document.getElementById("accountEmail"),
+  accountProviderBadge: document.getElementById("accountProviderBadge"),
+  btnToggleChangePassword: document.getElementById("btnToggleChangePassword"),
+  changePasswordForm: document.getElementById("changePasswordForm"),
+  changePasswordMsg: document.getElementById("changePasswordMsg"),
+  googleOnlyNotice: document.getElementById("googleOnlyNotice"),
+  btnLogout: document.getElementById("btnLogout"),
 
   toast: document.getElementById("toast"),
   toastMessage: document.getElementById("toastMessage")
@@ -312,19 +311,23 @@ const el = {
 
 /* INITIALIZATION */
 document.addEventListener("DOMContentLoaded", () => {
-  initApp();
-});
-
-async function initApp() {
   setupEventListeners();
   setupFullscreenOrientationLock();
   renderSearchHistory();
+});
+
+// Dipanggil dari auth.js setelah Firebase memastikan user sudah login.
+// Sengaja dipisah dari wiring UI di atas biar data film baru ke-fetch
+// SETELAH user lolos gerbang login, bukan dari awal app dibuka.
+window.startSuikaApp = async function startSuikaApp() {
+  if (window.__suikaAppStarted) return;
+  window.__suikaAppStarted = true;
 
   await loadHomePageData();
 
   // RESTORE MOVIE DETAIL & PLAYER IF RETURNED FROM EXTERNAL AD REDIRECT OR BACK BUTTON
   restoreActivePlayerSession();
-}
+};
 
 async function loadHomePageData() {
   try {
@@ -548,71 +551,37 @@ function switchView(viewId) {
   });
 
   if (viewId === "viewAkun") {
-    loadDeviceSpecifications();
+    renderAccountPage();
   }
 }
 
-/* DETECT HP DEVICE SPECIFICATIONS */
-async function loadDeviceSpecifications() {
-  const ua = navigator.userAgent;
-  el.specUserAgent.textContent = ua;
+/* RENDER PROFIL AKUN (dipanggil dari auth.js tiap onAuthStateChanged & tiap buka tab Akun) */
+function renderAccountPage() {
+  const user = window.SuikaAuth?.getCurrentUser?.();
+  if (!user) return;
 
-  let brand = "Android Smartphone";
-  if (ua.includes("Samsung") || ua.includes("SM-")) brand = "Samsung Galaxy";
-  else if (ua.includes("Xiaomi") || ua.includes("Redmi") || ua.includes("POCO")) brand = "Xiaomi / POCO";
-  else if (ua.includes("OPPO") || ua.includes("CPH")) brand = "OPPO Mobile";
-  else if (ua.includes("Vivo") || ua.includes("V2")) brand = "Vivo Mobile";
-  else if (ua.includes("Realme") || ua.includes("RMX")) brand = "Realme Mobile";
-  else if (ua.includes("iPhone")) brand = "Apple iPhone";
-  else if (ua.includes("Pixel")) brand = "Google Pixel";
-  el.specDeviceBrand.textContent = brand;
+  const displayName = user.displayName || user.email?.split("@")[0] || "Pengguna SuikaMovie";
+  const initial = (displayName || "S").trim().charAt(0).toUpperCase();
 
-  let os = "Android OS";
-  if (ua.includes("Android")) {
-    const match = ua.match(/Android\s([0-9\.]+)/);
-    os = match ? `Android ${match[1]}` : "Android Linux";
-  } else if (ua.includes("iPhone OS")) {
-    const match = ua.match(/OS\s([0-9\_]+)/);
-    os = match ? `iOS ${match[1].replace(/_/g, '.')}` : "Apple iOS";
-  }
-  el.specOsVersion.textContent = os;
+  el.accountName.textContent = displayName;
+  el.accountEmail.textContent = user.email || "-";
 
-  const w = window.screen.width;
-  const h = window.screen.height;
-  const dpr = window.devicePixelRatio || 1.0;
-  el.specScreenRes.textContent = `${w} x ${h} (${dpr}x DPR)`;
-
-  const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  const connType = conn ? (conn.effectiveType ? conn.effectiveType.toUpperCase() : "Online") : (navigator.onLine ? "Online" : "Offline");
-  el.specConnectionType.textContent = `${connType} ${navigator.onLine ? '(Connected)' : '(Offline)'}`;
-
-  el.specRam.textContent = navigator.deviceMemory ? `${navigator.deviceMemory} GB RAM` : "4 - 8 GB RAM";
-  el.specCpuCores.textContent = navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} Core CPU` : "Octa-Core CPU";
-
-  const lang = navigator.language || "id-ID";
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Jakarta";
-  el.specTimezone.textContent = `${lang} (${tz})`;
-
-  if (navigator.getBattery) {
-    try {
-      const b = await navigator.getBattery();
-      const pct = Math.round(b.level * 100);
-      el.specBattery.textContent = `${pct}% ${b.charging ? '(Mengisi Daya)' : '(Baterai)'}`;
-    } catch (e) {
-      el.specBattery.textContent = "95% (Normal)";
-    }
+  if (user.photoURL) {
+    el.accountAvatar.style.backgroundImage = `url(${user.photoURL})`;
+    el.accountAvatar.textContent = "";
   } else {
-    el.specBattery.textContent = "Terhubung";
+    el.accountAvatar.style.backgroundImage = "";
+    el.accountAvatar.textContent = initial;
   }
 
-  try {
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    el.specIpAddress.textContent = data.ip || "180.252.88.10";
-  } catch (e) {
-    el.specIpAddress.textContent = "180.252.88.10 (Public IP)";
-  }
+  const isGoogleOnly = user.providerData.length > 0 &&
+    user.providerData.every(p => p.providerId === "google.com");
+
+  el.accountProviderBadge.textContent = isGoogleOnly ? "Google" : "Email";
+  el.changePasswordForm.closest(".account-card").classList.toggle("hidden", isGoogleOnly);
+  el.googleOnlyNotice.classList.toggle("hidden", !isGoogleOnly);
 }
+window.renderAccountPage = renderAccountPage;
 
 /* HERO BANNER CAROUSEL */
 function renderHeroBanner(index) {

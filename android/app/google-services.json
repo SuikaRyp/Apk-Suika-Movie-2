@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "342381718186",
+    "project_id": "projectapk-8be7c",
+    "storage_bucket": "projectapk-8be7c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:342381718186:android:f2b0a1d91259d682697ed3",
+        "android_client_info": {
+          "package_name": "com.suikamovie.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBU6Lu3gYkK6uN4N1hEKM-b8dXJq_RemmE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
