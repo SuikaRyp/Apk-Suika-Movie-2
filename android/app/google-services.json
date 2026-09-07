@@ -12,7 +12,20 @@
           "package_name": "com.suikamovie.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "342381718186-lp5c7b6nsf0r2n9gnvjk7hlgvjrlnf3o.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.suikamovie.app",
+            "certificate_hash": "b6281439903dbceef66cc2c1b6dce860b72a624f"
+          }
+        },
+        {
+          "client_id": "342381718186-apnu0qnqlt0tk900q245cmktq9otisch.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBU6Lu3gYkK6uN4N1hEKM-b8dXJq_RemmE"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "342381718186-apnu0qnqlt0tk900q245cmktq9otisch.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

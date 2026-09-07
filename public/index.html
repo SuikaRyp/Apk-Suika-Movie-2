@@ -20,7 +20,11 @@
        Muncul duluan sebelum konten film bisa diakses.
        ========================================== -->
   <div id="authOverlay" class="auth-overlay">
-    <div class="auth-card">
+    <div id="authChecking" class="auth-checking">
+      <div class="auth-checking-spinner"></div>
+      <span>Memeriksa sesi login...</span>
+    </div>
+    <div class="auth-card hidden" id="authCard">
       <div class="auth-logo">
         <div class="logo-icon">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

@@ -21,6 +21,27 @@
   pointer-events: none;
 }
 
+.auth-checking {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: var(--text-muted);
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+}
+.auth-checking-spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-blue);
+  animation: auth-spin 0.7s linear infinite;
+}
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
 .auth-card {
   width: 100%;
   max-width: 380px;

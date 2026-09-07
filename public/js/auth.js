@@ -10,6 +10,7 @@ import {
   updateProfile,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCredential,
   signOut,
   sendPasswordResetEmail,
   EmailAuthProvider,
@@ -28,6 +29,8 @@ setPersistence(auth, browserLocalPersistence).catch(() => {});
 /* ---------- DOM REFS ---------- */
 const el = {
   overlay: document.getElementById("authOverlay"),
+  authChecking: document.getElementById("authChecking"),
+  authCard: document.getElementById("authCard"),
   tabs: document.querySelectorAll(".auth-tab-btn"),
   loginForm: document.getElementById("loginForm"),
   registerForm: document.getElementById("registerForm"),
@@ -172,19 +175,63 @@ el.registerForm.addEventListener("submit", async (e) => {
   }
 });
 
-/* ---------- GOOGLE SIGN-IN ---------- */
+/* ---------- GOOGLE SIGN-IN ----------
+   Di dalam app Android/iOS (native), kita pakai plugin native
+   @capacitor-firebase/authentication -> munculin akun picker asli
+   (semua akun Google yang login di HP), bukan popup di dalam WebView.
+   WebView OAuth popup biasa DITOLAK Google demi keamanan, makanya
+   sebelumnya bisa kelihatan nge-bug / nggak jalan sama sekali.
+   Setelah dapet ID token dari native, kita sinkronkan ke Firebase JS
+   SDK juga (signInWithCredential) biar auth.currentUser & seluruh
+   fitur lain (ubah password dll) tetap konsisten.
+   Kalau dibuka lewat browser biasa (bukan app), fallback ke popup web. */
+let googleSignInInProgress = false;
+
 el.btnGoogleSignIn.addEventListener("click", async () => {
+  if (googleSignInInProgress) return;
+  googleSignInInProgress = true;
   clearAuthMessages();
+
+  const originalLabel = el.btnGoogleSignIn.querySelector("span").textContent;
+  el.btnGoogleSignIn.disabled = true;
+  el.btnGoogleSignIn.querySelector("span").textContent = "Menghubungkan...";
+
   try {
-    await signInWithPopup(auth, googleProvider);
+    const isNative = window.Capacitor?.isNativePlatform?.();
+    const nativeFirebaseAuth = window.Capacitor?.Plugins?.FirebaseAuthentication;
+
+    if (isNative && nativeFirebaseAuth) {
+      const result = await nativeFirebaseAuth.signInWithGoogle();
+      const idToken = result?.credential?.idToken;
+      const accessToken = result?.credential?.accessToken;
+
+      if (!idToken) {
+        throw new Error("Tidak menerima ID token dari Google. Coba lagi.");
+      }
+
+      // Samain sesi native dengan Firebase JS SDK biar seluruh app
+      // (ubah password, onAuthStateChanged, dll) baca user yang sama.
+      const credential = GoogleAuthProvider.credential(idToken, accessToken);
+      await signInWithCredential(auth, credential);
+    } else if (isNative && !nativeFirebaseAuth) {
+      throw new Error(
+        "Plugin native Google Sign-In belum terpasang. Jalankan 'npm install' lalu 'npx cap sync android' dulu."
+      );
+    } else {
+      // Fallback buat preview di browser biasa / desktop (Tauri).
+      await signInWithPopup(auth, googleProvider);
+    }
   } catch (err) {
-    // Catatan: login Google via popup butuh browser standar. Di dalam
-    // WebView Android biasa (bukan Chrome Custom Tab), Google kadang
-    // menolak popup OAuth-nya demi keamanan. Kalau ini kejadian di app
-    // Android-mu, solusi paling stabil adalah pasang plugin native
-    // @capacitor-firebase/authentication supaya Google Sign-In lewat
-    // native Google Play Services, bukan WebView.
-    showAuthError(friendlyAuthError(err));
+    // Batal/tutup picker akun bukan error sungguhan, jadi nggak perlu nampilin pesan merah.
+    const cancelledCodes = ["auth/popup-closed-by-user", "auth/cancelled-popup-request", "12501", "canceled"];
+    const isCancelled = cancelledCodes.some((c) => String(err?.code || err?.message || "").includes(c));
+    if (!isCancelled) {
+      showAuthError(friendlyAuthError(err));
+    }
+  } finally {
+    googleSignInInProgress = false;
+    el.btnGoogleSignIn.disabled = false;
+    el.btnGoogleSignIn.querySelector("span").textContent = originalLabel;
   }
 });
 
@@ -252,7 +299,14 @@ function showToastSafe(msg) {
 
 /* ---------- GERBANG UTAMA: TAMPIL APP CUMA KALAU SUDAH LOGIN ---------- */
 onAuthStateChanged(auth, (user) => {
+  // Begitu Firebase selesai ngecek sesi (baik ketemu user maupun nggak),
+  // spinner "Memeriksa sesi login..." langsung disembunyikan.
+  el.authChecking.classList.add("hidden");
+
   if (user) {
+    // Udah login sebelumnya -> langsung ke halaman film, form login/daftar
+    // nggak perlu sempet nongol sama sekali.
+    el.authCard.classList.add("hidden");
     el.overlay.classList.add("auth-overlay-hidden");
     document.body.style.overflow = "";
     clearAuthMessages();
@@ -262,7 +316,9 @@ onAuthStateChanged(auth, (user) => {
     window.startSuikaApp?.();
     window.renderAccountPage?.();
   } else {
+    // Belum login -> baru sekarang form login/daftar ditampilkan.
     el.overlay.classList.remove("auth-overlay-hidden");
+    el.authCard.classList.remove("hidden");
     document.body.style.overflow = "hidden";
   }
 });

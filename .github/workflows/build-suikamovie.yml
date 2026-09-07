@@ -41,9 +41,13 @@ jobs:
       - name: ⚡ Sync Capacitor Android
         run: npm run cap:sync
 
-      - name: 🔑 Generate Keystore if missing
+      - name: 🔑 Restore Persistent Release Keystore
         run: |
-          if [ ! -f android/app/release.keystore ]; then
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+            echo "Keystore direstore dari GitHub Secret (fingerprint tetap sama tiap build)."
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 belum di-set di GitHub Secrets. APK akan ditandatangani pakai keystore acak baru (SHA-1 beda tiap build, Google Sign-In & auto-update APK akan rusak)."
             keytool -genkey -v -keystore android/app/release.keystore -alias suikamovie -keyalg RSA -keysize 2048 -validity 10000 -storepass suikamovie123 -keypass suikamovie123 -dname "CN=SUIKAMOVIE, OU=Streaming, O=SUIKAMOVIE Inc, L=Jakarta, S=ID, C=ID"
           fi
 
