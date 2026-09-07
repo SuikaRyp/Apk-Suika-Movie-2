@@ -17,6 +17,15 @@ import {
   reauthenticateWithCredential,
   updatePassword,
 } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-auth.js";
+import {
+  ensureUserProfile,
+  getUserProfile,
+  awardWatchExp,
+  uploadAvatar,
+  getLevelInfo,
+  isAdminEmail,
+  fetchAllUsersForAdmin,
+} from "./user-data.js";
 
 const firebaseApp = initializeApp(firebaseConfig);
 const auth = getAuth(firebaseApp);
@@ -46,6 +55,19 @@ const el = {
   changePasswordForm: document.getElementById("changePasswordForm"),
   changePasswordMsg: document.getElementById("changePasswordMsg"),
   btnLogout: document.getElementById("btnLogout"),
+  btnEditAvatar: document.getElementById("btnEditAvatar"),
+  avatarSheet: document.getElementById("avatarSheet"),
+  btnAvatarCamera: document.getElementById("btnAvatarCamera"),
+  btnAvatarGallery: document.getElementById("btnAvatarGallery"),
+  btnAvatarCancel: document.getElementById("btnAvatarCancel"),
+  avatarCameraInput: document.getElementById("avatarCameraInput"),
+  avatarGalleryInput: document.getElementById("avatarGalleryInput"),
+
+  // Admin panel
+  adminSection: document.getElementById("adminSection"),
+  adminTotalUsers: document.getElementById("adminTotalUsers"),
+  adminUserList: document.getElementById("adminUserList"),
+  btnRefreshAdmin: document.getElementById("btnRefreshAdmin"),
 };
 
 /* ---------- PESAN ERROR FIREBASE -> BAHASA INDONESIA ---------- */
@@ -297,8 +319,107 @@ function showToastSafe(msg) {
   setTimeout(() => toast.classList.add("hidden"), 2500);
 }
 
+/* ---------- GANTI AVATAR (KAMERA / GALERI) ---------- */
+el.btnEditAvatar.addEventListener("click", () => {
+  el.avatarSheet.classList.remove("hidden");
+});
+el.btnAvatarCancel.addEventListener("click", () => {
+  el.avatarSheet.classList.add("hidden");
+});
+el.avatarSheet.addEventListener("click", (e) => {
+  if (e.target === el.avatarSheet) el.avatarSheet.classList.add("hidden");
+});
+el.btnAvatarCamera.addEventListener("click", () => {
+  el.avatarSheet.classList.add("hidden");
+  el.avatarCameraInput.click();
+});
+el.btnAvatarGallery.addEventListener("click", () => {
+  el.avatarSheet.classList.add("hidden");
+  el.avatarGalleryInput.click();
+});
+
+async function handleAvatarFile(fileInput) {
+  const file = fileInput.files?.[0];
+  fileInput.value = ""; // reset biar bisa pilih file yang sama lagi lain kali
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    showToastSafe("File yang dipilih bukan gambar.");
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToastSafe("Ukuran foto maksimal 5MB.");
+    return;
+  }
+
+  const user = auth.currentUser;
+  if (!user) return;
+
+  showToastSafe("Mengunggah foto profil...");
+  try {
+    const url = await uploadAvatar(user.uid, file);
+    await updateProfile(user, { photoURL: url });
+    cachedProfile = { ...(cachedProfile || {}), photoURL: url };
+    window.renderAccountPage?.();
+    showToastSafe("Foto profil berhasil diganti!");
+  } catch (err) {
+    console.error(err);
+    showToastSafe("Gagal unggah foto. Coba lagi.");
+  }
+}
+el.avatarCameraInput.addEventListener("change", () => handleAvatarFile(el.avatarCameraInput));
+el.avatarGalleryInput.addEventListener("change", () => handleAvatarFile(el.avatarGalleryInput));
+
+/* ---------- ADMIN PANEL ---------- */
+el.btnRefreshAdmin?.addEventListener("click", () => loadAdminPanel());
+
+async function loadAdminPanel() {
+  if (!isAdminEmail(auth.currentUser?.email)) return;
+  el.adminSection.classList.remove("hidden");
+  el.adminUserList.innerHTML = `<div class="admin-loading">Memuat data pengguna...</div>`;
+
+  try {
+    const users = await fetchAllUsersForAdmin();
+    el.adminTotalUsers.textContent = users.length;
+
+    if (!users.length) {
+      el.adminUserList.innerHTML = `<div class="admin-loading">Belum ada pengguna terdaftar.</div>`;
+      return;
+    }
+
+    el.adminUserList.innerHTML = users
+      .map((u) => {
+        const info = getLevelInfo(u.exp || 0);
+        const joined = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString("id-ID") : "-";
+        return `
+          <div class="admin-user-row">
+            <div class="admin-user-main">
+              <span class="admin-user-name">${escapeHtml(u.displayName || "-")}</span>
+              <span class="admin-user-email">${escapeHtml(u.email || "-")}</span>
+            </div>
+            <div class="admin-user-meta">
+              <span class="admin-user-level ${info.theme}">Lv.${info.level}</span>
+              <span class="admin-user-date">${joined}</span>
+            </div>
+          </div>`;
+      })
+      .join("");
+  } catch (err) {
+    console.error(err);
+    el.adminUserList.innerHTML = `<div class="admin-loading">Gagal memuat data. Cek Firestore Security Rules kamu (lihat firestore.rules).</div>`;
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
 /* ---------- GERBANG UTAMA: TAMPIL APP CUMA KALAU SUDAH LOGIN ---------- */
-onAuthStateChanged(auth, (user) => {
+let cachedProfile = null;
+
+onAuthStateChanged(auth, async (user) => {
   // Begitu Firebase selesai ngecek sesi (baik ketemu user maupun nggak),
   // spinner "Memeriksa sesi login..." langsung disembunyikan.
   el.authChecking.classList.add("hidden");
@@ -314,17 +435,56 @@ onAuthStateChanged(auth, (user) => {
     el.registerForm.reset();
 
     window.startSuikaApp?.();
-    window.renderAccountPage?.();
+
+    try {
+      cachedProfile = await ensureUserProfile(user);
+      window.renderAccountPage?.();
+
+      if (isAdminEmail(user.email)) {
+        loadAdminPanel();
+      } else {
+        el.adminSection.classList.add("hidden");
+      }
+    } catch (err) {
+      console.warn("Firestore belum siap / gagal dimuat:", err);
+      showToastSafe("Fitur level/EXP belum aktif — pastikan Firestore sudah dinyalakan di Firebase Console.");
+    }
   } else {
     // Belum login -> baru sekarang form login/daftar ditampilkan.
+    cachedProfile = null;
     el.overlay.classList.remove("auth-overlay-hidden");
     el.authCard.classList.remove("hidden");
     document.body.style.overflow = "hidden";
   }
 });
 
-/* Diekspos ke app.js buat baca data user aktif (nama, email, foto, provider) */
+/* Diekspos ke app.js buat baca data user aktif (nama, email, foto, level, EXP, admin) */
 window.SuikaAuth = {
   getCurrentUser: () => auth.currentUser,
+  getProfile: () => cachedProfile,
+  isAdmin: () => isAdminEmail(auth.currentUser?.email),
+  getLevelInfo: (exp) => getLevelInfo(exp),
   logout: () => signOut(auth),
+
+  // Dipanggil dari app.js tiap user mulai nonton film/episode.
+  awardWatchExp: async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    try {
+      const prevLevel = getLevelInfo(cachedProfile?.exp || 0).level;
+      await awardWatchExp(user.uid);
+
+      cachedProfile = await getUserProfile(user.uid);
+      const newLevelInfo = getLevelInfo(cachedProfile?.exp || 0);
+
+      window.renderAccountPage?.();
+
+      if (newLevelInfo.level > prevLevel) {
+        showToastSafe(`🎉 Naik ke Level ${newLevelInfo.level} — ${newLevelInfo.title}!`);
+      }
+    } catch (err) {
+      console.warn("Gagal nambah EXP (Firestore belum siap?):", err);
+    }
+  },
 };

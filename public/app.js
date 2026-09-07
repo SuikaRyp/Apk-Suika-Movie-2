@@ -299,6 +299,12 @@ const el = {
   accountName: document.getElementById("accountName"),
   accountEmail: document.getElementById("accountEmail"),
   accountProviderBadge: document.getElementById("accountProviderBadge"),
+  accountAdminBadge: document.getElementById("accountAdminBadge"),
+  accountLevelBadge: document.getElementById("accountLevelBadge"),
+  accountTitleBadge: document.getElementById("accountTitleBadge"),
+  accountExpBarFill: document.getElementById("accountExpBarFill"),
+  accountExpLabel: document.getElementById("accountExpLabel"),
+  accountWatchCount: document.getElementById("accountWatchCount"),
   btnToggleChangePassword: document.getElementById("btnToggleChangePassword"),
   changePasswordForm: document.getElementById("changePasswordForm"),
   changePasswordMsg: document.getElementById("changePasswordMsg"),
@@ -533,7 +539,7 @@ function setupEventListeners() {
       saveActivePlayerSession();
       showToast(`Server diganti ke ${pill.textContent}`);
       if (!el.detailInlinePlayer.classList.contains("hidden")) {
-        startInlinePlayer();
+        startInlinePlayer(false);
       }
     });
   });
@@ -560,14 +566,16 @@ function renderAccountPage() {
   const user = window.SuikaAuth?.getCurrentUser?.();
   if (!user) return;
 
+  const profile = window.SuikaAuth?.getProfile?.();
   const displayName = user.displayName || user.email?.split("@")[0] || "Pengguna SuikaMovie";
   const initial = (displayName || "S").trim().charAt(0).toUpperCase();
+  const photoURL = user.photoURL || profile?.photoURL;
 
   el.accountName.textContent = displayName;
   el.accountEmail.textContent = user.email || "-";
 
-  if (user.photoURL) {
-    el.accountAvatar.style.backgroundImage = `url(${user.photoURL})`;
+  if (photoURL) {
+    el.accountAvatar.style.backgroundImage = `url(${photoURL})`;
     el.accountAvatar.textContent = "";
   } else {
     el.accountAvatar.style.backgroundImage = "";
@@ -580,6 +588,22 @@ function renderAccountPage() {
   el.accountProviderBadge.textContent = isGoogleOnly ? "Google" : "Email";
   el.changePasswordForm.closest(".account-card").classList.toggle("hidden", isGoogleOnly);
   el.googleOnlyNotice.classList.toggle("hidden", !isGoogleOnly);
+
+  // ===== LEVEL, EXP, & TITLE =====
+  const info = window.SuikaAuth?.getLevelInfo?.(profile?.exp || 0);
+  if (info) {
+    el.accountLevelBadge.textContent = `Lv. ${info.level}`;
+    el.accountLevelBadge.className = `account-level-badge ${info.theme}`;
+    el.accountTitleBadge.textContent = info.title;
+    el.accountTitleBadge.className = `account-title-badge ${info.theme}`;
+    el.accountExpBarFill.style.width = `${info.progressPercent}%`;
+    el.accountExpBarFill.className = `account-exp-bar-fill ${info.theme}`;
+    el.accountExpLabel.textContent = `${info.expIntoLevel} / ${info.expNeededForLevel} EXP`;
+    el.accountWatchCount.textContent = profile?.watchCount || 0;
+  }
+
+  // ===== ADMIN BADGE (panel-nya sendiri dikendalikan dari auth.js) =====
+  el.accountAdminBadge.classList.toggle("hidden", !window.SuikaAuth?.isAdmin?.());
 }
 window.renderAccountPage = renderAccountPage;
 
@@ -827,7 +851,7 @@ function closeDetailModal() {
   state.currentDetail = null;
 }
 
-function startInlinePlayer() {
+function startInlinePlayer(awardExp = true) {
   if (!state.currentDetail) return;
   const { id, type, title } = state.currentDetail;
   const serverInfo = SERVERS[state.activeServer] || SERVERS.vidlink || SERVERS.vidsrc;
@@ -840,6 +864,12 @@ function startInlinePlayer() {
   el.btnDetailPlayCover.classList.add("hidden");
   saveActivePlayerSession();
   showToast(`Memutar: ${title} (${serverInfo.name})`);
+
+  // Kasih EXP tiap kali user mulai nonton film/episode BARU
+  // (bukan sekadar ganti server buat film/episode yang sama).
+  if (awardExp) {
+    window.SuikaAuth?.awardWatchExp?.();
+  }
 }
 
 /**

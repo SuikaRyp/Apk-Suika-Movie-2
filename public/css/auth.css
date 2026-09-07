@@ -375,3 +375,375 @@
   line-height: 1.6;
   margin: 0;
 }
+
+/* ==========================================================================
+   AVATAR (FOTO PROFIL) + TOMBOL EDIT
+   ========================================================================== */
+
+.account-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.account-avatar-edit-btn {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  border: 2px solid var(--bg-card);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--blue-glow);
+}
+.account-avatar-edit-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.account-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.account-admin-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  color: #1a1206;
+  background: linear-gradient(135deg, #ffe27a, #d4a017);
+  box-shadow: 0 0 10px rgba(212, 160, 23, 0.5);
+}
+
+.account-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   BOTTOM SHEET: PILIH FOTO (KAMERA / GALERI)
+   ========================================================================== */
+
+.avatar-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.avatar-sheet.hidden {
+  display: none;
+}
+
+.avatar-sheet-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px 20px 0 0;
+  padding: 10px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  animation: avatar-sheet-up 0.2s ease;
+}
+@keyframes avatar-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.avatar-sheet-title {
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 10px 0 14px;
+}
+
+.avatar-sheet-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 10px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-light);
+  color: var(--text-main);
+  font-family: var(--font-main);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.avatar-sheet-option svg {
+  width: 20px;
+  height: 20px;
+  color: var(--primary-blue-light);
+}
+
+.avatar-sheet-cancel {
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px 0;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--bg-surface);
+  color: var(--text-sub);
+  font-family: var(--font-main);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   LEVEL, EXP & TITLE TIERS
+   Palet per-tier: gray -> blue -> purple -> emerald -> gold -> legend(merah-emas animasi)
+   ========================================================================== */
+
+.account-level-badge,
+.account-title-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 4px 11px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+}
+
+.account-title-badge {
+  font-size: 0.78rem;
+  padding: 6px 14px;
+}
+
+/* --- Tier: Pemula (abu-abu) --- */
+.tier-gray {
+  color: #cbd5e1;
+  background: #2a3752;
+}
+
+/* --- Tier: Penikmat Film (biru, senada tema app) --- */
+.tier-blue {
+  color: #bfdcff;
+  background: linear-gradient(135deg, rgba(47,125,255,0.35), rgba(21,87,192,0.35));
+  box-shadow: 0 0 10px rgba(47,125,255,0.25);
+}
+
+/* --- Tier: Kolektor Genre (ungu) --- */
+.tier-purple {
+  color: #e5d4ff;
+  background: linear-gradient(135deg, rgba(168,85,247,0.35), rgba(109,40,217,0.35));
+  box-shadow: 0 0 10px rgba(168,85,247,0.3);
+}
+
+/* --- Tier: Master Streaming (emerald) --- */
+.tier-emerald {
+  color: #b6f5d8;
+  background: linear-gradient(135deg, rgba(16,185,129,0.35), rgba(5,120,90,0.35));
+  box-shadow: 0 0 10px rgba(16,185,129,0.3);
+}
+
+/* --- Tier: Legenda SuikaMovie (emas berkilau) --- */
+.tier-gold {
+  color: #3a2a00;
+  background: linear-gradient(120deg, #ffe27a, #d4a017, #ffe27a);
+  background-size: 200% auto;
+  animation: tier-shimmer 3s linear infinite;
+  box-shadow: 0 0 14px rgba(212, 160, 23, 0.5);
+  font-weight: 900;
+}
+
+/* --- Tier tertinggi: SUIKA GRANDMASTER (merah-emas, animasi berkilau + glow) --- */
+.tier-legend {
+  color: #fff3d6;
+  background: linear-gradient(120deg, #ff2e2e, #d4a017, #ff2e2e, #ffdd55, #ff2e2e);
+  background-size: 300% auto;
+  animation: tier-shimmer 2.2s linear infinite, tier-pulse 1.6s ease-in-out infinite;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  font-weight: 900;
+}
+
+@keyframes tier-shimmer {
+  to { background-position: 200% center; }
+}
+@keyframes tier-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 46, 46, 0.45), 0 0 4px rgba(212, 160, 23, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(255, 46, 46, 0.75), 0 0 10px rgba(212, 160, 23, 0.8); }
+}
+
+/* --- Kartu progress EXP --- */
+.account-exp-card {
+  padding: 16px;
+}
+.account-exp-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.account-watch-count-wrap {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  font-weight: 600;
+}
+
+.account-exp-bar-track {
+  width: 100%;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+.account-exp-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+.account-exp-bar-fill.tier-gray { background: linear-gradient(90deg, #64748b, #94a3b8); }
+.account-exp-bar-fill.tier-blue { background: var(--primary-gradient); }
+.account-exp-bar-fill.tier-purple { background: linear-gradient(90deg, #a855f7, #6d28d9); }
+.account-exp-bar-fill.tier-emerald { background: linear-gradient(90deg, #10b981, #05785a); }
+.account-exp-bar-fill.tier-gold {
+  background: linear-gradient(90deg, #ffe27a, #d4a017);
+  box-shadow: 0 0 8px rgba(212,160,23,0.6);
+}
+.account-exp-bar-fill.tier-legend {
+  background: linear-gradient(90deg, #ff2e2e, #d4a017, #ffdd55);
+  background-size: 200% auto;
+  animation: tier-shimmer 1.8s linear infinite;
+  box-shadow: 0 0 10px rgba(255,46,46,0.6);
+}
+
+.account-exp-label {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: right;
+}
+.account-exp-hint {
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   ADMIN PANEL
+   ========================================================================== */
+
+.admin-panel-card {
+  padding: 16px;
+}
+.admin-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+.admin-stat-label {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.admin-stat-value {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--primary-blue-light);
+}
+.admin-refresh-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-sub);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.admin-refresh-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.admin-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.admin-loading {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 16px 0;
+}
+.admin-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+}
+.admin-user-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.admin-user-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-user-email {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.admin-user-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.admin-user-level {
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+.admin-user-date {
+  font-size: 0.62rem;
+  color: var(--text-light);
+}

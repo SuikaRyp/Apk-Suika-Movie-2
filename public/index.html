@@ -358,11 +358,57 @@
            ========================================== -->
       <div id="viewAkun" class="app-view">
         <div class="account-header-card">
-          <div class="account-avatar" id="accountAvatar">S</div>
+          <div class="account-avatar-wrap">
+            <div class="account-avatar" id="accountAvatar">S</div>
+            <button type="button" class="account-avatar-edit-btn" id="btnEditAvatar" aria-label="Ganti foto profil">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+            </button>
+          </div>
           <div class="account-info">
-            <h2 id="accountName">Pengguna SuikaMovie</h2>
+            <div class="account-name-row">
+              <h2 id="accountName">Pengguna SuikaMovie</h2>
+              <span id="accountAdminBadge" class="account-admin-badge hidden">OWNER</span>
+            </div>
             <p id="accountEmail">-</p>
-            <span id="accountProviderBadge" class="account-provider-badge">Email</span>
+            <div class="account-badge-row">
+              <span id="accountProviderBadge" class="account-provider-badge">Email</span>
+              <span id="accountLevelBadge" class="account-level-badge tier-gray">Lv. 1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== LEVEL & EXP CARD ===== -->
+        <div class="account-menu-section">
+          <div class="account-menu-title">Progress Menonton</div>
+          <div class="account-card account-exp-card">
+            <div class="account-exp-top">
+              <span id="accountTitleBadge" class="account-title-badge tier-gray">Pemula</span>
+              <span class="account-watch-count-wrap">🎬 <span id="accountWatchCount">0</span>x nonton</span>
+            </div>
+            <div class="account-exp-bar-track">
+              <div id="accountExpBarFill" class="account-exp-bar-fill tier-gray" style="width:0%"></div>
+            </div>
+            <div class="account-exp-label" id="accountExpLabel">0 / 100 EXP</div>
+            <p class="account-exp-hint">Nonton film / episode buat nambah EXP &amp; naik level!</p>
+          </div>
+        </div>
+
+        <!-- ===== ADMIN PANEL (cuma kelihatan buat owner) ===== -->
+        <div class="account-menu-section hidden" id="adminSection">
+          <div class="account-menu-title">Panel Admin</div>
+          <div class="account-card admin-panel-card">
+            <div class="admin-stat-row">
+              <div>
+                <span class="admin-stat-label">Total Pengguna Terdaftar</span>
+                <span class="admin-stat-value" id="adminTotalUsers">0</span>
+              </div>
+              <button type="button" class="admin-refresh-btn" id="btnRefreshAdmin" aria-label="Refresh data">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+              </button>
+            </div>
+            <div id="adminUserList" class="admin-user-list">
+              <div class="admin-loading">Memuat data pengguna...</div>
+            </div>
           </div>
         </div>
 
@@ -399,6 +445,24 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== BOTTOM SHEET: PILIH SUMBER FOTO PROFIL ===== -->
+      <div id="avatarSheet" class="avatar-sheet hidden">
+        <div class="avatar-sheet-card">
+          <div class="avatar-sheet-title">Ganti Foto Profil</div>
+          <button type="button" class="avatar-sheet-option" id="btnAvatarCamera">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <span>Ambil Foto</span>
+          </button>
+          <button type="button" class="avatar-sheet-option" id="btnAvatarGallery">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+            <span>Pilih dari Galeri</span>
+          </button>
+          <button type="button" class="avatar-sheet-cancel" id="btnAvatarCancel">Batal</button>
+        </div>
+      </div>
+      <input type="file" id="avatarCameraInput" accept="image/*" capture="user" class="hidden" />
+      <input type="file" id="avatarGalleryInput" accept="image/*" class="hidden" />
 
     </main>
 
