@@ -230,7 +230,10 @@ let state = {
   activeSeason: 1,
   activeEpisode: 1,
   searchHistory: JSON.parse(localStorage.getItem("suikamovie_search_history") || '["Avatar 3", "Squid Game 2", "Demon Slayer", "Siksa Kubur"]'),
-  favorites: JSON.parse(localStorage.getItem("suikamovie_favorites") || "[]")
+  favorites: JSON.parse(localStorage.getItem("suikamovie_favorites") || "[]"),
+  // Auto rotate ke landscape pas player di-fullscreen-in. Default ON, tapi
+  // user bisa matiin lewat toggle di halaman Akun > Preferensi.
+  autoRotateEnabled: localStorage.getItem("suikamovie_auto_rotate") !== "off"
 };
 
 /* DOM ELEMENTS */
@@ -310,6 +313,7 @@ const el = {
   changePasswordMsg: document.getElementById("changePasswordMsg"),
   googleOnlyNotice: document.getElementById("googleOnlyNotice"),
   btnLogout: document.getElementById("btnLogout"),
+  toggleAutoRotate: document.getElementById("toggleAutoRotate"),
 
   toast: document.getElementById("toast"),
   toastMessage: document.getElementById("toastMessage")
@@ -394,6 +398,23 @@ function restoreActivePlayerSession() {
 
 /* EVENT LISTENERS SETUP */
 function setupEventListeners() {
+  // Toggle Auto Rotate (Akun > Preferensi) - simpan pilihan user di localStorage
+  if (el.toggleAutoRotate) {
+    el.toggleAutoRotate.checked = state.autoRotateEnabled;
+    el.toggleAutoRotate.addEventListener("change", () => {
+      state.autoRotateEnabled = el.toggleAutoRotate.checked;
+      localStorage.setItem("suikamovie_auto_rotate", state.autoRotateEnabled ? "on" : "off");
+
+      // Kalau dimatiin pas layar lagi kepaksa landscape, langsung unlock biar
+      // nggak nyangkut di landscape.
+      if (!state.autoRotateEnabled && screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock();
+      }
+
+      showToast(state.autoRotateEnabled ? "Auto rotate diaktifkan" : "Auto rotate dimatikan");
+    });
+  }
+
   // Refresh / Shuffle Movies Button
   if (el.btnRefreshHome) {
     el.btnRefreshHome.addEventListener("click", async (e) => {
@@ -880,13 +901,16 @@ function startInlinePlayer(awardExp = true) {
  * pencet tombol fullscreen di dalam player, kita deteksi lewat event itu
  * lalu paksa rotasi ke landscape otomatis biar enak nontonnya. Waktu keluar
  * dari fullscreen, orientasi dibalikin bebas (unlock) lagi.
+ *
+ * Fitur ini bisa dimatiin user lewat toggle "Auto Rotate Layar" di halaman
+ * Akun > Preferensi (state.autoRotateEnabled, disimpan di localStorage).
  */
 function setupFullscreenOrientationLock() {
   const handleFullscreenChange = () => {
     const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
     const isPlayerFullscreen = fsEl && (fsEl === el.detailInlinePlayer || fsEl.contains?.(el.detailInlinePlayer));
 
-    if (isPlayerFullscreen && screen.orientation && screen.orientation.lock) {
+    if (isPlayerFullscreen && state.autoRotateEnabled && screen.orientation && screen.orientation.lock) {
       screen.orientation.lock("landscape").catch(() => {
         /* sebagian browser/WebView nolak lock kalau bukan trusted user gesture; aman diabaikan */
       });

@@ -333,6 +333,69 @@
   color: #f87171;
 }
 
+/* ==========================================================================
+   TOGGLE ITEM (mis. Auto Rotate) DI DALAM ACCOUNT MENU
+   ========================================================================== */
+.account-toggle-item {
+  cursor: default;
+}
+.account-toggle-item span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.account-toggle-item span:first-child small {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background: var(--bg-body);
+  border: 1.5px solid var(--border-color);
+  border-radius: 999px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.toggle-switch-slider::before {
+  content: "";
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--text-light);
+  border-radius: 50%;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.toggle-switch input:checked + .toggle-switch-slider {
+  background: var(--primary-gradient);
+  border-color: transparent;
+}
+.toggle-switch input:checked + .toggle-switch-slider::before {
+  transform: translate(18px, -50%);
+  background: #fff;
+}
+.toggle-switch input:focus-visible + .toggle-switch-slider {
+  box-shadow: 0 0 0 3px rgba(47, 125, 255, 0.25);
+}
+
 .account-inline-form {
   display: flex;
   flex-direction: column;
