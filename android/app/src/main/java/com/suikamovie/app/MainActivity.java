@@ -11,6 +11,9 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        // Plugin native custom (rotasi layar paksa) WAJIB didaftarin SEBELUM
+        // super.onCreate(), sesuai pola registrasi plugin Capacitor.
+        registerPlugin(OrientationLockPlugin.class);
         super.onCreate(savedInstanceState);
         setupImmersiveNavBar();
     }

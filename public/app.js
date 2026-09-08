@@ -409,8 +409,8 @@ function setupEventListeners() {
 
       // Kalau dimatiin pas layar lagi kepaksa landscape, langsung unlock biar
       // nggak nyangkut di landscape.
-      if (!state.autoRotateEnabled && screen.orientation && screen.orientation.unlock) {
-        screen.orientation.unlock();
+      if (!state.autoRotateEnabled) {
+        unlockPlayerOrientation();
       }
 
       showToast(state.autoRotateEnabled ? "Auto rotate diaktifkan" : "Auto rotate dimatikan");
@@ -956,6 +956,37 @@ function updatePlayerFullscreenButtonIcon(isFullscreen) {
   el.btnPlayerFullscreen.title = isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh";
 }
 
+/**
+ * Coba pakai plugin native OrientationLock dulu (lihat OrientationLockPlugin.java)
+ * karena JS Screen Orientation API sering nggak jalan di Android WebView.
+ * Kalau plugin native-nya nggak ada (misal lagi dibuka di browser biasa /
+ * belum di-build ulang APK-nya), fallback ke screen.orientation.lock() bawaan
+ * web sebagai cadangan.
+ */
+function lockPlayerLandscape() {
+  const native = window.Capacitor?.Plugins?.OrientationLock;
+  if (native?.lockLandscape) {
+    native.lockLandscape().catch(() => {});
+    return;
+  }
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock("landscape").catch(() => {
+      /* sebagian browser/WebView nolak lock kalau bukan trusted user gesture; aman diabaikan */
+    });
+  }
+}
+
+function unlockPlayerOrientation() {
+  const native = window.Capacitor?.Plugins?.OrientationLock;
+  if (native?.unlock) {
+    native.unlock().catch(() => {});
+    return;
+  }
+  if (screen.orientation && screen.orientation.unlock) {
+    screen.orientation.unlock();
+  }
+}
+
 function setupFullscreenOrientationLock() {
   if (el.btnPlayerFullscreen) {
     el.btnPlayerFullscreen.addEventListener("click", () => {
@@ -978,12 +1009,10 @@ function setupFullscreenOrientationLock() {
 
     updatePlayerFullscreenButtonIcon(isPlayerFullscreen);
 
-    if (isPlayerFullscreen && state.autoRotateEnabled && screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock("landscape").catch(() => {
-        /* sebagian browser/WebView nolak lock kalau bukan trusted user gesture; aman diabaikan */
-      });
-    } else if (!fsEl && screen.orientation && screen.orientation.unlock) {
-      screen.orientation.unlock();
+    if (isPlayerFullscreen && state.autoRotateEnabled) {
+      lockPlayerLandscape();
+    } else if (!fsEl) {
+      unlockPlayerOrientation();
     }
   };
 
