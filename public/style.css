@@ -1221,6 +1221,50 @@ body {
   background: #000000;
 }
 
+/* ==========================================================================
+   TOMBOL FULLSCREEN CUSTOM (di atas iframe player, z-index paling tinggi
+   biar tetep bisa dipencet walau player-nya nutupin seluruh area)
+   ========================================================================== */
+.btn-player-fullscreen {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 9;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 7, 13, 0.55);
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-full);
+  color: #ffffff;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+.btn-player-fullscreen svg {
+  width: 18px;
+  height: 18px;
+}
+
+.detail-cover-area:fullscreen,
+.detail-cover-area:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  background: #000000;
+}
+.detail-cover-area:fullscreen .cover-backdrop-img,
+.detail-cover-area:fullscreen .cover-gradient-overlay,
+.detail-cover-area:-webkit-full-screen .cover-backdrop-img,
+.detail-cover-area:-webkit-full-screen .cover-gradient-overlay {
+  display: none;
+}
+.detail-cover-area:fullscreen .btn-player-fullscreen,
+.detail-cover-area:-webkit-full-screen .btn-player-fullscreen {
+  top: max(12px, env(safe-area-inset-top));
+  right: max(12px, env(safe-area-inset-right));
+}
+
 .detail-main-content {
   padding: 1rem;
 }

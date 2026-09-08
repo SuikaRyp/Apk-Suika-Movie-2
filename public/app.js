@@ -278,7 +278,9 @@ const el = {
   btnDetailFav: document.getElementById("btnDetailFav"),
   detailBackdropImg: document.getElementById("detailBackdropImg"),
   btnDetailPlayCover: document.getElementById("btnDetailPlayCover"),
+  detailCoverArea: document.getElementById("detailCoverArea"),
   detailInlinePlayer: document.getElementById("detailInlinePlayer"),
+  btnPlayerFullscreen: document.getElementById("btnPlayerFullscreen"),
   detailTitle: document.getElementById("detailTitle"),
   detailRating: document.getElementById("detailRating"),
   detailYear: document.getElementById("detailYear"),
@@ -426,6 +428,10 @@ function setupEventListeners() {
 
   // Handle Browser PopState / Hardware Back Button
   window.addEventListener("popstate", (e) => {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      exitPlayerFullscreen();
+      return;
+    }
     const savedSession = sessionStorage.getItem("suikamovie_active_detail");
     if (savedSession) {
       restoreActivePlayerSession();
@@ -437,7 +443,9 @@ function setupEventListeners() {
   // Native Capacitor App Hardware Back Button Listener
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
     window.Capacitor.Plugins.App.addListener('backButton', () => {
-      if (!el.detailModal.classList.contains("hidden")) {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        exitPlayerFullscreen();
+      } else if (!el.detailModal.classList.contains("hidden")) {
         closeDetailModal();
       } else if (state.activeView !== "viewBeranda") {
         switchView("viewBeranda");
@@ -832,6 +840,7 @@ async function openDetailModal(id, type = "movie", autoPlay = false) {
   el.detailInlinePlayer.classList.add("hidden");
   el.detailInlinePlayer.src = "about:blank";
   el.btnDetailPlayCover.classList.remove("hidden");
+  el.btnPlayerFullscreen?.classList.add("hidden");
 
   // SEASON CONTROLS ONLY FOR TV SHOWS (STRICTLY HIDDEN FOR MOVIES)
   if (type === "tv") {
@@ -862,10 +871,15 @@ function closeDetailModal() {
     history.pushState("", document.title, window.location.pathname + window.location.search);
   }
 
+  // Kalau lagi fullscreen, keluar dulu (ini juga bakal ke-unlock orientasinya
+  // lewat handler fullscreenchange).
+  exitPlayerFullscreen();
+
   // STOP PLAYER IMMEDIATELY
   el.detailInlinePlayer.src = "about:blank";
   el.detailInlinePlayer.classList.add("hidden");
   el.btnDetailPlayCover.classList.remove("hidden");
+  el.btnPlayerFullscreen?.classList.add("hidden");
 
   el.detailModal.classList.add("hidden");
   document.body.style.overflow = "";
@@ -883,6 +897,7 @@ function startInlinePlayer(awardExp = true) {
   el.detailInlinePlayer.src = streamUrl;
   el.detailInlinePlayer.classList.remove("hidden");
   el.btnDetailPlayCover.classList.add("hidden");
+  el.btnPlayerFullscreen?.classList.remove("hidden");
   saveActivePlayerSession();
   showToast(`Memutar: ${title} (${serverInfo.name})`);
 
@@ -895,20 +910,73 @@ function startInlinePlayer(awardExp = true) {
 
 /**
  * Player streaming (iframe server pihak ketiga) punya tombol fullscreen
- * bawaannya sendiri. Kita nggak bisa nyuntik JS ke dalam iframe-nya (beda
- * origin), tapi event fullscreenchange di document tetap kebaca sama parent
- * page walau elemen yang full-screen-nya cross-origin. Jadi begitu user
- * pencet tombol fullscreen di dalam player, kita deteksi lewat event itu
- * lalu paksa rotasi ke landscape otomatis biar enak nontonnya. Waktu keluar
- * dari fullscreen, orientasi dibalikin bebas (unlock) lagi.
+ * bawaannya sendiri. Masalahnya, banyak server yang fullscreen-nya "palsu"
+ * (cuma CSS gede-gedein, nggak manggil Fullscreen API asli) ATAU manggil
+ * Fullscreen API di dalam iframe cross-origin yang kadang nggak konsisten
+ * kebaca di WebView Android. Makanya kita sediakan tombol fullscreen KITA
+ * SENDIRI (btnPlayerFullscreen) yang manggil Fullscreen API asli langsung
+ * di wrapper first-party kita (.detail-cover-area / el.detailCoverArea).
+ * Ini dijamin kepicu selama dipanggil dari dalam user gesture (klik).
  *
- * Fitur ini bisa dimatiin user lewat toggle "Auto Rotate Layar" di halaman
- * Akun > Preferensi (state.autoRotateEnabled, disimpan di localStorage).
+ * Begitu wrapper itu sukses masuk fullscreen, event fullscreenchange di
+ * document kebaca, lalu kita paksa rotasi ke landscape (kalau fitur auto
+ * rotate-nya nyala di Akun > Preferensi). Waktu keluar fullscreen, orientasi
+ * dibalikin bebas (unlock) lagi.
+ *
+ * Listener fullscreenchange ini TETAP kita pertahankan buat jaga-jaga kalau
+ * tombol fullscreen bawaan si server pihak ketiga ternyata jalan juga.
  */
+function requestPlayerFullscreen() {
+  const target = el.detailCoverArea;
+  if (!target) return;
+  const request = target.requestFullscreen || target.webkitRequestFullscreen || target.mozRequestFullScreen;
+  if (!request) {
+    showToast("Fullscreen nggak didukung di perangkat ini");
+    return;
+  }
+  const result = request.call(target);
+  if (result && typeof result.catch === "function") {
+    result.catch(() => {
+      showToast("Nggak bisa masuk fullscreen, coba lagi");
+    });
+  }
+}
+
+function exitPlayerFullscreen() {
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (!fsEl) return;
+  if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+}
+
+function updatePlayerFullscreenButtonIcon(isFullscreen) {
+  if (!el.btnPlayerFullscreen) return;
+  el.btnPlayerFullscreen.querySelector(".icon-expand")?.classList.toggle("hidden", isFullscreen);
+  el.btnPlayerFullscreen.querySelector(".icon-collapse")?.classList.toggle("hidden", !isFullscreen);
+  el.btnPlayerFullscreen.title = isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh";
+}
+
 function setupFullscreenOrientationLock() {
+  if (el.btnPlayerFullscreen) {
+    el.btnPlayerFullscreen.addEventListener("click", () => {
+      const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+      if (fsEl) {
+        exitPlayerFullscreen();
+      } else {
+        requestPlayerFullscreen();
+      }
+    });
+  }
+
   const handleFullscreenChange = () => {
     const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
-    const isPlayerFullscreen = fsEl && (fsEl === el.detailInlinePlayer || fsEl.contains?.(el.detailInlinePlayer));
+    const isPlayerFullscreen = !!fsEl && (
+      fsEl === el.detailCoverArea ||
+      fsEl === el.detailInlinePlayer ||
+      fsEl.contains?.(el.detailInlinePlayer)
+    );
+
+    updatePlayerFullscreenButtonIcon(isPlayerFullscreen);
 
     if (isPlayerFullscreen && state.autoRotateEnabled && screen.orientation && screen.orientation.lock) {
       screen.orientation.lock("landscape").catch(() => {

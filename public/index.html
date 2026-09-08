@@ -541,6 +541,18 @@
 
           <!-- Standard iframe player with full native fullscreen permissions & no-referrer policy -->
           <iframe id="detailInlinePlayer" class="detail-inline-iframe hidden" src="about:blank" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; accelerometer; gyroscope" referrerpolicy="no-referrer"></iframe>
+
+          <!--
+            Tombol fullscreen KITA SENDIRI (bukan bawaan server pihak ketiga).
+            Server pihak ketiga kadang cuma fullscreen "palsu" (CSS doang, nggak
+            manggil Fullscreen API asli), jadi orientasi nggak ikut auto-rotate.
+            Tombol ini manggil Fullscreen API asli di wrapper (.detail-cover-area)
+            yang kita punya sendiri, jadi auto-rotate-nya dijamin kepicu.
+          -->
+          <button type="button" id="btnPlayerFullscreen" class="btn-player-fullscreen hidden" title="Layar Penuh" aria-label="Layar penuh">
+            <svg class="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+            <svg class="icon-collapse hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path></svg>
+          </button>
         </div>
 
         <!-- Detail Information Content -->
