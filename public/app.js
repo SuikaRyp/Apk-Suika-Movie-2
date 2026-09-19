@@ -231,6 +231,8 @@ let state = {
   activeEpisode: 1,
   searchHistory: JSON.parse(localStorage.getItem("suikamovie_search_history") || '["Avatar 3", "Squid Game 2", "Demon Slayer", "Siksa Kubur"]'),
   favorites: JSON.parse(localStorage.getItem("suikamovie_favorites") || "[]"),
+  // Riwayat nonton - film/episode yang baru-baru ini diputer, terbaru duluan.
+  watchHistory: JSON.parse(localStorage.getItem("suikamovie_watch_history") || "[]"),
   // Auto rotate ke landscape pas player di-fullscreen-in. Default ON, tapi
   // user bisa matiin lewat toggle di halaman Akun > Preferensi.
   autoRotateEnabled: localStorage.getItem("suikamovie_auto_rotate") !== "off"
@@ -281,6 +283,13 @@ const el = {
   detailCoverArea: document.getElementById("detailCoverArea"),
   detailInlinePlayer: document.getElementById("detailInlinePlayer"),
   btnPlayerFullscreen: document.getElementById("btnPlayerFullscreen"),
+  appHeader: document.getElementById("appHeader"),
+  heroBannerSection: document.getElementById("heroBannerSection"),
+  btnWatchHistory: document.getElementById("btnWatchHistory"),
+  historyModal: document.getElementById("historyModal"),
+  btnHistoryBack: document.getElementById("btnHistoryBack"),
+  btnHistoryClear: document.getElementById("btnHistoryClear"),
+  historyGridList: document.getElementById("historyGridList"),
   detailTitle: document.getElementById("detailTitle"),
   detailRating: document.getElementById("detailRating"),
   detailYear: document.getElementById("detailYear"),
@@ -417,6 +426,35 @@ function setupEventListeners() {
     });
   }
 
+  // Tombol Riwayat Nonton (header, kiri logo) + modalnya
+  el.btnWatchHistory?.addEventListener("click", openHistoryModal);
+  el.btnHistoryBack?.addEventListener("click", closeHistoryModal);
+  el.btnHistoryClear?.addEventListener("click", () => {
+    if (!state.watchHistory.length) return;
+    state.watchHistory = [];
+    localStorage.setItem("suikamovie_watch_history", JSON.stringify(state.watchHistory));
+    renderWatchHistory();
+    showToast("Riwayat nonton dihapus.");
+  });
+
+  // Search bar di header cuma "muncul" abis user scroll ngelewatin section
+  // hero/top rekomendasi. Dicek pakai IntersectionObserver (jauh lebih
+  // ringan/mulus daripada scroll-listener biasa - nggak jalan tiap frame
+  // scroll, cuma pas hero-nya bener-bener lewat viewport atas).
+  if (el.appHeader && el.heroBannerSection && "IntersectionObserver" in window) {
+    const headerHeight = el.appHeader.offsetHeight || 0;
+    const heroObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        // Hero udah nggak kelihatan lagi (scroll ke bawah ngelewatin dia) ->
+        // baru tampilin search bar. Balik ke atas -> sembunyiin lagi.
+        el.appHeader.classList.toggle("search-revealed", !entry.isIntersecting);
+      },
+      { rootMargin: `-${headerHeight}px 0px 0px 0px`, threshold: 0 }
+    );
+    heroObserver.observe(el.heroBannerSection);
+  }
+
   // Refresh / Shuffle Movies Button
   if (el.btnRefreshHome) {
     el.btnRefreshHome.addEventListener("click", async (e) => {
@@ -432,6 +470,10 @@ function setupEventListeners() {
       exitPlayerFullscreen();
       return;
     }
+    if (el.historyModal && !el.historyModal.classList.contains("hidden")) {
+      closeHistoryModal();
+      return;
+    }
     const savedSession = sessionStorage.getItem("suikamovie_active_detail");
     if (savedSession) {
       restoreActivePlayerSession();
@@ -445,6 +487,8 @@ function setupEventListeners() {
     window.Capacitor.Plugins.App.addListener('backButton', () => {
       if (document.fullscreenElement || document.webkitFullscreenElement) {
         exitPlayerFullscreen();
+      } else if (el.historyModal && !el.historyModal.classList.contains("hidden")) {
+        closeHistoryModal();
       } else if (!el.detailModal.classList.contains("hidden")) {
         closeDetailModal();
       } else if (state.activeView !== "viewBeranda") {
@@ -708,6 +752,62 @@ function renderPosterCards(container, items) {
   });
 }
 
+/* ==========================================================================
+   RIWAYAT NONTON (WATCH HISTORY)
+   ========================================================================== */
+const WATCH_HISTORY_LIMIT = 30;
+
+/**
+ * Dipanggil tiap kali user mulai nonton (lihat startInlinePlayer). Film/
+ * episode yang sama kalau ditonton ulang bakal dipindah ke paling depan
+ * (bukan dobel), dan daftarnya dibatasin biar localStorage nggak membengkak.
+ */
+function addToWatchHistory(detail) {
+  if (!detail || !detail.id) return;
+
+  const entry = {
+    id: detail.id,
+    type: detail.type || "movie",
+    title: detail.title,
+    poster: detail.poster,
+    rating: detail.rating,
+    year: detail.year,
+    watchedAt: Date.now()
+  };
+
+  state.watchHistory = state.watchHistory.filter(
+    (h) => !(h.id === entry.id && h.type === entry.type)
+  );
+  state.watchHistory.unshift(entry);
+  if (state.watchHistory.length > WATCH_HISTORY_LIMIT) {
+    state.watchHistory = state.watchHistory.slice(0, WATCH_HISTORY_LIMIT);
+  }
+
+  localStorage.setItem("suikamovie_watch_history", JSON.stringify(state.watchHistory));
+}
+
+function renderWatchHistory() {
+  if (!el.historyGridList) return;
+  if (!state.watchHistory.length) {
+    el.historyGridList.innerHTML = `<div class="empty-state"><p>Belum ada riwayat nonton. Yuk mulai nonton film!</p></div>`;
+    return;
+  }
+  renderPosterCards(el.historyGridList, state.watchHistory);
+}
+
+function openHistoryModal() {
+  if (!el.historyModal) return;
+  renderWatchHistory();
+  el.historyModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function closeHistoryModal() {
+  if (!el.historyModal) return;
+  el.historyModal.classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
 /* RENDER PERINGKAT FILM */
 function renderRankingCards(items, filter = "all") {
   if (!el.rankingScrollList) return;
@@ -900,6 +1000,9 @@ function startInlinePlayer(awardExp = true) {
   el.btnPlayerFullscreen?.classList.remove("hidden");
   saveActivePlayerSession();
   showToast(`Memutar: ${title} (${serverInfo.name})`);
+
+  // Catet ke Riwayat Nonton tiap kali mulai muter.
+  addToWatchHistory(state.currentDetail);
 
   // Kasih EXP tiap kali user mulai nonton film/episode BARU
   // (bukan sekadar ganti server buat film/episode yang sama).

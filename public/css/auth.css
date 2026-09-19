@@ -42,6 +42,132 @@
   to { transform: rotate(360deg); }
 }
 
+/* ==========================================================================
+   INTRO SCREENS (DISCLAIMER & WELCOME) - alur "swipe up to continue"
+   yang muncul sebelum halaman login / sebelum masuk ke konten film.
+   ========================================================================== */
+.intro-overlay {
+  z-index: 100000;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  background: #000000;
+  padding: max(20px, env(safe-area-inset-top)) 24px max(20px, env(safe-area-inset-bottom));
+  gap: 0;
+  touch-action: none;
+  user-select: none;
+}
+#welcomeOverlay.intro-overlay {
+  z-index: 100001;
+}
+
+.intro-topbar {
+  text-align: center;
+  padding-top: 6px;
+  flex-shrink: 0;
+}
+.intro-brand {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+}
+.intro-brand .highlight {
+  color: var(--primary-blue);
+}
+.intro-version {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: var(--text-light);
+}
+
+.intro-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 2px;
+  overflow-y: auto;
+  min-height: 0;
+}
+.intro-body-center {
+  align-items: center;
+  justify-content: center;
+}
+
+.intro-title {
+  font-family: var(--font-display);
+  font-size: 2.3rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0 0 18px;
+}
+.intro-text {
+  font-family: var(--font-main);
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin: 0 0 14px;
+}
+.intro-link {
+  color: var(--primary-blue);
+  text-decoration: underline;
+}
+
+.intro-welcome-title {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+.intro-swipe-area {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-top: 20px;
+}
+.intro-swipe-handle {
+  width: 26px;
+  height: 66px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  background: transparent;
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.intro-swipe-chevron {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  transform: translateX(-50%);
+  animation: intro-swipe-bounce 1.6s ease-in-out infinite;
+}
+@keyframes intro-swipe-bounce {
+  0% { transform: translate(-50%, 0); opacity: 1; }
+  65% { transform: translate(-50%, -38px); opacity: 0; }
+  66% { transform: translate(-50%, 8px); opacity: 0; }
+  100% { transform: translate(-50%, 0); opacity: 1; }
+}
+.intro-swipe-label {
+  font-family: var(--font-main);
+  font-size: 0.8rem;
+  color: var(--text-light);
+  letter-spacing: 0.3px;
+}
+
 .auth-card {
   width: 100%;
   max-width: 380px;

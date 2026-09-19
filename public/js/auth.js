@@ -68,6 +68,12 @@ const el = {
   adminTotalUsers: document.getElementById("adminTotalUsers"),
   adminUserList: document.getElementById("adminUserList"),
   btnRefreshAdmin: document.getElementById("btnRefreshAdmin"),
+
+  // Intro screens (disclaimer & welcome, alur "swipe up to continue")
+  disclaimerOverlay: document.getElementById("disclaimerOverlay"),
+  disclaimerSwipeHandle: document.getElementById("disclaimerSwipeHandle"),
+  welcomeOverlay: document.getElementById("welcomeOverlay"),
+  welcomeSwipeHandle: document.getElementById("welcomeSwipeHandle"),
 };
 
 /* ---------- PESAN ERROR FIREBASE -> BAHASA INDONESIA ---------- */
@@ -415,6 +421,51 @@ function escapeHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
+
+/* ---------- INTRO SCREENS: swipe-up-to-continue (Disclaimer & Welcome) ---------- */
+
+/**
+ * Deteksi gesture "swipe up" (geser jari ke atas) di sebuah panel layar
+ * penuh. Juga nyediain tombol/handle yang bisa di-tap langsung sebagai
+ * fallback (buat testing di desktop, atau kalau gesture-nya gagal
+ * kedeteksi di device tertentu).
+ */
+function setupSwipeUpToContinue(panelEl, handleEl, onDismiss) {
+  if (!panelEl) return;
+  let startY = null;
+  let dismissed = false;
+
+  const finish = () => {
+    if (dismissed) return;
+    dismissed = true;
+    onDismiss();
+  };
+
+  panelEl.addEventListener("touchstart", (e) => {
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  panelEl.addEventListener("touchmove", (e) => {
+    if (startY === null) return;
+    const deltaY = startY - e.touches[0].clientY;
+    if (deltaY > 60) finish(); // geser ke atas minimal ~60px dianggap "swipe up"
+  }, { passive: true });
+
+  panelEl.addEventListener("touchend", () => {
+    startY = null;
+  }, { passive: true });
+
+  handleEl?.addEventListener("click", finish);
+}
+
+// WELCOME (nongol paling pertama) -> DISCLAIMER -> baru auth gate (login/app).
+// Keduanya independen, cuma nge-toggle class hidden masing-masing.
+setupSwipeUpToContinue(el.welcomeOverlay, el.welcomeSwipeHandle, () => {
+  el.welcomeOverlay?.classList.add("auth-overlay-hidden");
+});
+setupSwipeUpToContinue(el.disclaimerOverlay, el.disclaimerSwipeHandle, () => {
+  el.disclaimerOverlay?.classList.add("auth-overlay-hidden");
+});
 
 /* ---------- GERBANG UTAMA: TAMPIL APP CUMA KALAU SUDAH LOGIN ---------- */
 let cachedProfile = null;

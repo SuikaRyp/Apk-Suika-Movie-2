@@ -16,6 +16,70 @@
 </head>
 <body>
   <!-- ==========================================
+       INTRO 1: WELCOME
+       Layar paling pertama muncul pas app dibuka. User geser ke atas
+       (swipe up) buat lanjut ke Disclaimer.
+       ========================================== -->
+  <div id="welcomeOverlay" class="auth-overlay intro-overlay">
+    <div class="intro-topbar">
+      <div class="intro-brand">
+        SUIKA<span class="highlight">MOVIE</span>
+      </div>
+      <div class="intro-version">App: 1.0 (1)</div>
+    </div>
+
+    <div class="intro-body intro-body-center">
+      <h1 class="intro-welcome-title">.WELCOME.</h1>
+    </div>
+
+    <div class="intro-swipe-area">
+      <button type="button" id="welcomeSwipeHandle" class="intro-swipe-handle" aria-label="Lanjut">
+        <span class="intro-swipe-chevron"></span>
+      </button>
+      <span class="intro-swipe-label">Swipe Up to continue</span>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       INTRO 2: DISCLAIMER
+       Muncul abis Welcome di-swipe. User geser ke atas (swipe up) lagi
+       buat lanjut ke halaman login.
+       ========================================== -->
+  <div id="disclaimerOverlay" class="auth-overlay intro-overlay">
+    <div class="intro-topbar">
+      <div class="intro-brand">
+        SUIKA<span class="highlight">MOVIE</span>
+      </div>
+      <div class="intro-version">App: 1.0 (1)</div>
+    </div>
+
+    <div class="intro-body">
+      <h1 class="intro-title">Disclaimer</h1>
+      <p class="intro-text">
+        SuikaMovie adalah aplikasi tidak resmi (unofficial). Seluruh merek dagang
+        dan hak cipta adalah milik pemegang haknya masing-masing. Kami tidak
+        bertanggung jawab atas konten yang di-hosting oleh pihak ketiga dan
+        tidak terlibat dalam proses upload/download konten tersebut — kami
+        cuma menyediakan tautan yang tersedia di internet.
+      </p>
+      <p class="intro-text">
+        Kalau menurut kamu ada konten yang melanggar hak kekayaan intelektual
+        dan kamu adalah pemegang hak cipta konten tersebut, silakan laporkan
+        ke <a href="mailto:admin@suikamovie.app" class="intro-link">admin@suikamovie.app</a>
+        dan konten tersebut akan langsung dihapus. Dengan menggunakan aplikasi
+        ini, kamu dianggap sudah menyetujui kebijakan ini.
+      </p>
+    </div>
+
+    <div class="intro-swipe-area">
+      <button type="button" id="disclaimerSwipeHandle" class="intro-swipe-handle" aria-label="Lanjut">
+        <span class="intro-swipe-chevron"></span>
+      </button>
+      <span class="intro-swipe-label">Swipe Up to continue</span>
+    </div>
+  </div>
+
+  <!-- ==========================================
        AUTH GATE - LOGIN / REGISTER
        Muncul duluan sebelum konten film bisa diakses.
        ========================================== -->
@@ -97,6 +161,11 @@
     <!-- TOP HEADER NAVBAR -->
     <header class="app-header" id="appHeader">
       <div class="header-container">
+        <!-- Tombol Riwayat Nonton (di kiri logo) -->
+        <button type="button" id="btnWatchHistory" class="btn-history-icon" title="Riwayat Nonton" aria-label="Riwayat Nonton">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3"></path><path d="M3.05 11a9 9 0 1 1 .5 4"></path><path d="M3 4v5h5"></path></svg>
+        </button>
+
         <!-- Logo SUIKAMOVIE -->
         <a href="#" class="brand-logo" id="brandLogo">
           <div class="logo-icon">
@@ -642,6 +711,32 @@
 
         </div>
 
+      </div>
+    </div>
+
+    <!-- ==========================================
+         RIWAYAT NONTON MODAL
+         Dibuka dari tombol jam di kiri logo header.
+         ========================================== -->
+    <div id="historyModal" class="modal-overlay hidden">
+      <div class="detail-page-container history-page-container">
+        <div class="detail-topbar">
+          <button id="btnHistoryBack" class="btn-circle-action" title="Kembali">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </button>
+          <h2 class="history-page-title">Riwayat Nonton</h2>
+          <div class="detail-topbar-actions">
+            <button id="btnHistoryClear" class="btn-circle-action" title="Hapus Semua Riwayat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="history-page-body">
+          <div id="historyGridList" class="poster-grid-3col">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
       </div>
     </div>
 
